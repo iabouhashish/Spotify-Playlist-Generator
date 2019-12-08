@@ -9,10 +9,11 @@ class Artist:
             self.genres = []
         else:
             self.genres = genres
-        self.songs = []
+        self.songs = {}
 
     def add_song(self, song):
-        self.songs.append(song)
+        if song.id not in self.songs:
+            self.songs[song.id] = song
 
     def get_songs(self):
         return self.songs
@@ -26,5 +27,5 @@ class Artist:
 
     def print(self):
         print("Artist is %s, id: %s" % (self.name, self.id))
-        for song in self.songs:
+        for key, song in self.songs.items():
             song.print()

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import base64
 import requests
 import os
@@ -8,6 +10,22 @@ import sys
 # Workaround to support both python 2 & 3
 import six
 import six.moves.urllib.parse as urllibparse
+
+
+class SpotifyException(Exception):
+    def __init__(self, http_status, code, msg, headers=None):
+        self.http_status = http_status
+        self.code = code
+        self.msg = msg
+        # `headers` is used to support `Retry-After` in the event of a
+        # 429 status code.
+        if headers is None:
+            headers = {}
+        self.headers = headers
+
+    def __str__(self):
+        return 'http status: {0}, code:{1} - {2}'.format(
+            self.http_status, self.code, self.msg)
 
 
 class SpotifyOauthError(Exception):
@@ -65,12 +83,12 @@ class SpotifyClientCredentials(object):
 
     def _request_access_token(self):
         """Gets client credentials access token """
-        payload = { 'grant_type': 'client_credentials'}
+        payload = {'grant_type': 'client_credentials'}
 
         headers = _make_authorization_headers(self.client_id, self.client_secret)
 
         response = requests.post(self.OAUTH_TOKEN_URL, data=payload,
-            headers=headers, verify=True, proxies=self.proxies)
+                                 headers=headers, verify=True, proxies=self.proxies)
         if response.status_code != 200:
             raise SpotifyOauthError(response.reason)
         token_info = response.json()
@@ -97,7 +115,7 @@ class SpotifyOAuth(object):
     OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token'
 
     def __init__(self, client_id, client_secret, redirect_uri,
-            state=None, scope=None, cache_path=None, proxies=None):
+                 state=None, scope=None, cache_path=None, proxies=None):
         '''
             Creates a SpotifyOAuth object
             Parameters:
@@ -112,9 +130,9 @@ class SpotifyOAuth(object):
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
-        self.state=state
+        self.state = state
         self.cache_path = cache_path
-        self.scope=self._normalize_scope(scope)
+        self.scope = self._normalize_scope(scope)
         self.proxies = proxies
 
     def get_cached_token(self):
@@ -207,7 +225,7 @@ class SpotifyOAuth(object):
         headers = self._make_authorization_headers()
 
         response = requests.post(self.OAUTH_TOKEN_URL, data=payload,
-            headers=headers, verify=True, proxies=self.proxies)
+                                 headers=headers, verify=True, proxies=self.proxies)
         if response.status_code != 200:
             raise SpotifyOauthError(response.reason)
         token_info = response.json()
@@ -224,19 +242,19 @@ class SpotifyOAuth(object):
             return None
 
     def refresh_access_token(self, refresh_token):
-        payload = { 'refresh_token': refresh_token,
+        payload = {'refresh_token': refresh_token,
                    'grant_type': 'refresh_token'}
 
         headers = self._make_authorization_headers()
 
         response = requests.post(self.OAUTH_TOKEN_URL, data=payload,
-            headers=headers, proxies=self.proxies)
+                                 headers=headers, proxies=self.proxies)
         if response.status_code != 200:
             if False:  # debugging code
                 print('headers', headers)
                 print('request', response.url)
             self._warn("couldn't refresh token: code:%d reason:%s" \
-                % (response.status_code, response.reason))
+                       % (response.status_code, response.reason))
             return None
         token_info = response.json()
         token_info = self._add_custom_values_to_token_info(token_info)
@@ -256,3 +274,81 @@ class SpotifyOAuth(object):
 
     def _warn(self, msg):
         print('warning:' + msg, file=sys.stderr)
+
+
+def prompt_for_user_token(username, scope=None, client_id=None,
+                          client_secret=None, redirect_uri=None, cache_path=None):
+    ''' prompts the user to login if necessary and returns
+        the user token suitable for use with the spotipy.Spotify
+        constructor
+        Parameters:
+         - username - the Spotify username
+         - scope - the desired scope of the request
+         - client_id - the client id of your app
+         - client_secret - the client secret of your app
+         - redirect_uri - the redirect URI of your app
+         - cache_path - path to location to save tokens
+    '''
+
+    if not client_id:
+        client_id = os.getenv('SPOTIPY_CLIENT_ID')
+
+    if not client_secret:
+        client_secret = os.getenv('SPOTIPY_CLIENT_SECRET')
+
+    if not redirect_uri:
+        redirect_uri = os.getenv('SPOTIPY_REDIRECT_URI')
+
+    if not client_id:
+        print('''
+            You need to set your Spotify API credentials. You can do this by
+            setting environment variables like so:
+            export SPOTIPY_CLIENT_ID='your-spotify-client-id'
+            export SPOTIPY_CLIENT_SECRET='your-spotify-client-secret'
+            export SPOTIPY_REDIRECT_URI='your-app-redirect-url'
+            Get your credentials at     
+                https://developer.spotify.com/my-applications
+        ''')
+        raise SpotifyException(550, -1, 'no credentials set')
+
+    cache_path = cache_path or ".cache-" + username
+    sp_oauth = SpotifyOAuth(client_id, client_secret, redirect_uri,
+                            scope=scope, cache_path=cache_path)
+
+    # try to get a valid token for this user, from the cache,
+    # if not in the cache, the create a new (this will send
+    # the user to a web page where they can authorize this app)
+
+    token_info = sp_oauth.get_cached_token()
+
+    if not token_info:
+        print('''
+            User authentication requires interaction with your
+            web browser. Once you enter your credentials and
+            give authorization, you will be redirected to
+            a url.  Paste that url you were directed to to
+            complete the authorization.
+        ''')
+        auth_url = sp_oauth.get_authorize_url()
+        try:
+            import webbrowser
+            webbrowser.open(auth_url)
+            print("Opened %s in your browser" % auth_url)
+        except:
+            print("Please navigate here: %s" % auth_url)
+
+        print()
+        print()
+        response = input("Enter the URL you were redirected to: ")
+
+    print()
+    print()
+
+    code = sp_oauth.parse_response_code(response)
+    token_info = sp_oauth.get_access_token(code)
+
+    # Auth'ed API request
+    if token_info:
+        return token_info['access_token']
+    else:
+        return None

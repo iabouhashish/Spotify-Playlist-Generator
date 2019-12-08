@@ -1,15 +1,16 @@
 from Artist import Artist
 
 
-class Artists:
+class Users:
     # Playlists: [Alternative, Rock, House, Pop, Indie, Hip-Hop, Reggae, Blues, Jazz, Metal, Folk, Indie]
     def __init__(self):
         self.artists = {}
         self.no_genre = {}
         self.genres = {}
-        self.playlists = {"rock": [], "alt": [], "house": [], "pop": [], "hiphop": [], "reggae": [], "blues": [],
+        self.genre_playlists = {"rock": [], "alt": [], "house": [], "pop": [], "hiphop": [], "reggae": [], "blues": [],
                           "jazz": [], "metal": [], "folk": [], "indie": [], "none": [], "rnb": []}
         self.find_cat = []
+        self.playlists = {}
 
     def find_artist(self, key):
         return self.artists[key]
@@ -19,6 +20,10 @@ class Artists:
             self.artists[artist.id] = artist
             if artist.genres == []:
                 self.no_genre[artist.id] = artist
+
+    def add_playlist(self, playlist):
+        if playlist.id not in self.playlists:
+            self.playlists[playlist.id] = playlist
 
     def has_genre(self, key):
         if key not in self.no_genre:
@@ -82,9 +87,10 @@ class Artists:
         print(num)
 
     def print_playlists(self):
-        print(len(self.find_cat))
-        for key, value in self.playlists.items():
+        # print(len(self.find_cat))
+        for key, value in self.genre_playlists.items():
             print(key)
+            print(value)
             for v in value:
                 v.print()
             print("------------------------------------------------------------------------\n")
@@ -98,53 +104,53 @@ class Artists:
             for g in value.genres:
                 if 'alternative' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["alt"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["alt"].append(song)
                 if 'rock' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["rock"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["rock"].append(song)
                 if 'house' in g or 'edm' in g or 'tech' in g or 'techno' in g or 'touch' in g or 'dnb' in g or 'drum and base' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["house"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["house"].append(song)
                 if 'pop' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["pop"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["pop"].append(song)
                 if 'indie' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["indie"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["indie"].append(song)
                 if 'hip hop' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["hiphop"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["hiphop"].append(song)
                 if 'r&b' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["rnb"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["rnb"].append(song)
                 if 'reggae' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["reggae"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["reggae"].append(song)
                 if 'blues' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["blues"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["blues"].append(song)
                 if 'jazz' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["jazz"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["jazz"].append(song)
                 if 'metal' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["metal"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["metal"].append(song)
                 if 'folk' in g:
                     found = True
-                    for song in value.songs:
-                        self.playlists["folk"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["folk"].append(song)
                 if not found:
                     self.find_cat.append(g)
-                    for song in value.songs:
-                        self.playlists["none"].append(song)
+                    for k, song in value.songs.items():
+                        self.genre_playlists["none"].append(song)
